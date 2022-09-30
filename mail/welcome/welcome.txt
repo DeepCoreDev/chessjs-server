@@ -1,0 +1,11 @@
+Hey,
+
+Thank you for signing up to ChessJS! As a small company, we really appriecate the support and encouragement. 
+
+Anyways, your shiny new account awaits! Check out some stuff you can do with it:
+
+https://www.chess-js.com/user - Customise your profile!
+https://www.chess-js.com/create - Unleash your creativity on some new Chess variants!
+
+Much appriecated,
+DeepCore Dev

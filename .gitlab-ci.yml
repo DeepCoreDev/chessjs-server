@@ -1,0 +1,23 @@
+stages:
+  - test
+  - deploy
+
+test-job:
+  stage: test
+  rules:
+    - when: on_success
+  script:
+    - npm i
+    - node -c 
+deploy-job:
+  stage: deploy
+  script:
+    - cp -r . /chessjs/
+    - cd /chessjs/
+    - npm i
+    - pm2 restart chessjs
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: on_success
+    - when: never
+

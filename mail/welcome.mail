@@ -1,0 +1,102 @@
+Hello $name$,
+Welcome to ChessJS!
+We're so glad to have you onboard!
+Check out what to do from here:
+ 1. https://www.chess-js.com/user - Check out & edit your profile!
+ 2. https://www.chess-js.com/play - Play some games!
+ 3. https://www.chess-js.com/library - Check out some community-created chess variants!
+
+Thank you for signing up to ChessJS!
+
+Sincerely,
+DeepCore Dev
+========
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<body style="margin:0;padding:0;">
+    <style>
+        table,
+        td,
+        div,
+        h1,
+        p {
+            font-family: Arial, sans-serif;
+        }
+    </style>
+    <table role="presentation"
+        style="width:100%;border-collapse:collapse;border:0;border-spacing:0;background:#ffffff;">
+        <tr>
+            <td align="center" style="padding:0;">
+                <table role="presentation"
+                    style="max-width:634px;border-collapse:collapse;border:1px solid #cccccc;border-spacing:0;text-align:left;">
+                    <tr>
+                        <td align="center" style="padding:40px 0 30px 0;">
+                            <img src="https://www.chess-js.com/light/chessjs.png" alt="" width="300"
+                                style="height:auto;display:block;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:36px 30px 42px 30px;">
+                            <table role="presentation"
+                                style="width:100%;border-collapse:collapse;border:0;border-spacing:0;">
+                                <tr>
+                                    <td style="color:#153643;">
+                                        <h1 style="font-size:24px;margin:0 0 20px 0;font-family:Arial,sans-serif;">
+                                            Welcome to ChessJS!</h1>
+                                        <p
+                                            style="margin:0 0 12px 0;font-size:16px;line-height:24px;font-family:Arial,sans-serif;">
+                                            Welcome to ChessJS, we're so glad to have you onboard! We've worked very
+                                            hard to make your experience is a good one, so if you every have any
+                                            questions, please feel free contact us at <a
+                                                href="mailto:support@chess-js.com">support@chess-js.com</a>.</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="color:#153643;">
+                                        <p>While we have your attention, check out what to do with your shiny new
+                                            account:</p>
+                                        <ol>
+                                            <li><a href="https://www.chess-js.com/user">Profile</a>
+                                                - Check out & edit your profile!
+                                            </li>
+                                            <li><a href="https://www.chess-js.com/play">Play</a>
+                                                - Play some games!
+                                            </li>
+                                            <li><a href="https://www.chess-js.com/library">Library</a>
+                                                - Check out some community-created chess variants!
+                                            </li>
+                                        </ol>
+                                        <p>
+                                            Thank you for signing up to ChessJS!
+                                            <br>
+                                            <br>
+                                            Sincerely,<br>
+                                            DeepCore Dev
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:30px;background:#ffba00;">
+                            <table role="presentation"
+                                style="width:100%;border-collapse:collapse;border:0;border-spacing:0;font-size:9px;font-family:Arial,sans-serif;">
+                                <tr>
+                                    <td style="padding:0;width:50%;" align="left">
+                                        <p
+                                            style="margin:0;font-size:14px;line-height:16px;font-family:Arial,sans-serif;">
+                                            &copy; DeepCore 2022<br /><a href="https://www.chess-js.com/unsubscribe"
+                                                style="color:black;text-decoration:none;">Unsubscribe</a>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
