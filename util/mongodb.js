@@ -27,5 +27,6 @@ async function connect() {
 
 module.exports = {
     client: client,
-    connect: connect
+    connect: connect,
+    url
 }

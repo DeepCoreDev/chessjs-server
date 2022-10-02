@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {},
   "dependencies": {
+    "axios": "^0.27.2",
     "bcrypt": "^5.0.1",
     "body-parser": "^1.20.0",
     "chess.js": "^0.13.4",
+    "connect-mongo": "^4.6.0",
     "cookie-parser": "~1.4.4",
     "cookie-session": "^2.0.0",
     "debug": "~2.6.9",

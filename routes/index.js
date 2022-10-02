@@ -2,85 +2,99 @@ var express = require("express");
 var router = express.Router();
 var mongodb = require("../util/mongodb");
 const mailer = require("../mailer.js");
-const auth = require('../util/auth')
+const auth = require('../util/auth');
+const crypto = require('crypto');
+const axios = require('axios');
+
+const application_id = "6337d618838ae6fae5ea2854";
+const application_secret = "yHySm5BD75wQ1kbrBvq3Kd0FjwMFpvMq";
+const deepcore_server = "//deepcore.dev";
+
+let states = {};
 
 router.get("/", function (req, res, next) {
   res.send(null);
 });
 
 router.get("/fetch", function (req, res, next) {
+  if (req.session.accessToken) {
+
+    if (!req.session.user || req.session.lastUpdated + (1000 * 60 * 30) < Date.now()) {
+      axios.get(`${deepcore_server}/api/oauth/user`, {
+        headers: {
+          'Authorization': JSON.stringify({
+            application_id,
+            accessToken: req.session.accessToken
+          })
+        }
+      }).then((e) => {
+        if (e.data.user) {
+          req.session.user = e.data.user;
+          req.session.lastUpdated = Date.now();
+          res.status(200);
+          res.send({
+            user: req.session.user,
+          });
+        }
+      }).catch((e) => {
+        console.log(e);
+        delete req.session.accessToken;
+        delete req.session.lastUpdated;
+        res.status(400);
+        res.send({ user: false });
+      })
+    } else {
+      res.send({
+        user: req.session.user,
+      });
+    }
+
+
+  } else {
+    res.send({ user: false });
+  }
+
+});
+
+router.post("/oauth/authorize", async function (req, res, next) {
+  let state = crypto.randomUUID();
+  let code = crypto.randomUUID();
+  req.session.stateCode = code;
+  states[state] = code;
+  res.status(200);
   res.send({
-    user: req.session.user || false,
+    redirect: `${deepcore_server}/oauth/authorize?application_id=6337d618838ae6fae5ea2854&state=${encodeURIComponent(state)}`
   });
 });
 
-router.post("/signup", async function (req, res, next) {
-  await mongodb.client.connect();
-  const db = mongodb.client.db("chessjs");
-  const collection = db.collection("users");
 
-  if (req.body.username && req.body.email && req.body.password) {
-
+router.post("/oauth/callback", async function (req, res, next) {
+  let code = req.body.code; // This is the one from the callback
+  let state = req.body.state;
+  if (states[state] == req.session.stateCode // This one is the state
+    && (states[state] != null && req.session.stateCode != null)) {
+    axios.post(`${deepcore_server}/api/oauth/access_token`, {
+      code,
+      application_id,
+      application_secret
+    })
+      .then((e) => {
+        req.session.accessToken = e.data.accessToken;
+        req.session.lastUpdated = Date.now();
+        res.status(200);
+        res.send({});
+      })
+      .catch((e) => {
+        console.log(e);
+        res.status(e.status);
+        res.send(e.response.data);
+      })
   } else {
-    res.status(442);
-    res.send({ message: "Username, email or password is invalid." });
-    return;
+    res.status(400);
+    res.send({
+      message: `Invalid state`
+    })
   }
-
-  // First check if details are valid
-  if (
-    req.body.username.match(
-      /^(?=[a-zA-Z0-9._]{4,20}$)(?!.*[_.]{2})[^_.].*[^_.]$/
-    ) &&
-    req.body.email.match(
-      /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-    ) &&
-    req.body.password.length >= 10
-  ) {
-  } else {
-    res.status(442);
-    res.send({ message: "Username, email or password is invalid." });
-    return;
-  }
-
-  // First check if username is available
-  var isAvailable = (await collection.findOne({ username: req.body.username })) == null;
-
-  if (!isAvailable) {
-    res.status(409);
-    res.send({ message: "Username is already taken." });
-    return;
-  }
-
-  var user = {
-    display_name: req.body.display_name,
-    username: req.body.username.toLowerCase(),
-    password: auth.hashPassword(req.body.password),
-    email: req.body.email,
-    description: "Hello! I'm new, so I haven't customised my description yet!",
-    join_date: new Date().toISOString(),
-    permission: 0, // Permission == membership
-    games: [],
-    library: [],
-    private: true,
-    liked: [],
-    saved: [],
-    pfp: '/api/media/default-pfp.png',
-    backer: false,
-  };
-
-  mailer.sendSignupEmail(user.email);
-
-  collection.insertOne(user).then((e) => {
-    req.session.user = user;
-    delete req.session.user.password;
-    req.session.user.current_user = true;
-
-    res.status(200);
-    res.json({
-      user: user,
-    });
-  });
 });
 
 router.post("/login", async function (req, res, next) {
@@ -98,6 +112,18 @@ router.post("/login", async function (req, res, next) {
   } else {
     res.status(401);
     res.send({ message: "Incorrect username or password." });
+  }
+});
+
+router.post('/forgot', async function (req, res, next) {
+  if (req.body.email) {
+    await mongodb.client.connect();
+    const db = mongodb.client.db("chessjs");
+    const collection = db.collection("users");
+
+  } else {
+    res.status(400);
+    res.send({ message: "Invalid email" });
   }
 });
 

@@ -4,10 +4,11 @@ var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 var mongodb = require('./util/mongodb');
-var session = require('cookie-session');
+var session = require('express-session');
 var bodyParser = require('body-parser');
 var chess = require('./chess/chess');
 var ratelimiter = require('./util/ratelimiter');
+const MongoStore = require('connect-mongo');
 
 mongodb.connect();
 
@@ -23,11 +24,17 @@ app.use(bodyParser.urlencoded());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
+const store = MongoStore.create({
+  mongoUrl: mongodb.url
+});
+
 var sess = {
   secret: '81d482ntg548g-239mfd8302n03nd89-0',
   resave: false,
   saveUninitialized: true,
-  cookie: {}
+  cookie: {},
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week,
+  store,
 }
 
 if (app.get('env') === 'production') {
@@ -40,9 +47,9 @@ if (app.get('env') === 'production') {
 var sess = session(sess);
 
 app.use(sess);
-chess.useSession(sess);
+chess.useSession(store);
 
-app.use('/', ratelimiter.new(100)); // 100 requests per seconds per user
+app.use('/', ratelimiter.new(50)); // 100 requests per seconds per user
 app.use("/api", indexRouter);
 app.use('/api/user', userRouter);
 app.use('/api/variant', variantRouter);

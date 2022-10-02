@@ -1,7 +1,6 @@
 var express = require("express");
 var router = express.Router();
 var mongodb = require("../util/mongodb");
-const userutil = require('../util/userutil');
 const urlutil = require('../util/urlutil')
 const variantutil = require('../util/variantutil');
 const multer = require("multer");
@@ -9,6 +8,10 @@ const fs = require('fs');
 const sharp = require('sharp');
 const editorutil = require('../util/editorutil');
 const { ObjectId } = require("mongodb");
+const axios = require('axios');
+
+const application_id = "6337d618838ae6fae5ea2854";
+const deepcore_server = "//deepcore.dev";
 
 router.get("/fetch", async function (req, res, next) {
   await mongodb.client.connect();
@@ -50,10 +53,10 @@ router.get("/fetch", async function (req, res, next) {
           var saves = (req.session.user.saved || []);
           var a_saved = saves.includes(a._id + "");
           var b_saved = saves.includes(b._id + "");
-          if(a_saved && !b_saved){
+          if (a_saved && !b_saved) {
             return -1;
           }
-          if(!a_saved && b_saved){
+          if (!a_saved && b_saved) {
             return 1;
           }
         }
@@ -108,13 +111,31 @@ router.post("/create", async function (req, res, next) {
     }]
   };
 
-
   collection.insertOne(variant).then((e) => {
     editorutil.createEditorObject(e.insertedId);
-    req.session.user.library.push(e.insertedId);
-    userutil.updateOne(req.session.user.username, "library", req.session.user.library);
-    res.status(200);
-    res.send(e.insertedId);
+    if (!req.session.user.appData.library) {
+      req.session.user.appData.library = [];
+    }
+    req.session.user.appData.library.push(e.insertedId);
+    axios.post(`${deepcore_server}/api/oauth/user/update`, {
+      key: "library",
+      data: req.session.user.appData.library
+    }, {
+      headers: {
+        'Authorization': JSON.stringify({
+          application_id,
+          accessToken: req.session.accessToken
+        })
+      }
+    }).then(() => {
+      res.status(200);
+      res.send(e.insertedId);
+    }).catch((m) => {
+      console.log(m);
+      res.status(400);
+      res.send(m.data);
+    })
+
   });
 });
 
@@ -129,7 +150,7 @@ router.post("/update", multer().any(), function (req, res, next) {
   var data = urlutil.collectparams(req.originalUrl.split("?")[1] || "");
   var id = data.id || req.body.id;
   if (id) {
-    if (req.session.user && req.session.user.library.includes(id)) {
+    if (req.session.user && req.session.user.appData.library.includes(id)) {
       checkAndUpdate(id, "title", req);
       checkAndUpdate(id, "description", req);
       checkAndUpdate(id, "features", req);
@@ -169,36 +190,67 @@ router.post('/action', async function (req, res, next) {
   var action = data.action || req.body.action;
   if (id && action && req.session.user) {
     if (action == "like") {
-      var liked = req.session.user.liked;
+
+      req.session.user.appData.liked = req.session.user.appData.liked || [];
       var variantLikes = variantutil.getVariant(id).likes || 0;
-      if (liked.includes(id)) {
-        //Unliked
-        req.session.user.liked.splice(liked.indexOf(id), 1);
-        userutil.updateOne(req.session.user.username, "liked", req.session.user.liked);
+
+      if (req.session.user.appData.liked.includes(id)) {
+        // Unliked
+        req.session.user.appData.liked.splice(req.session.user.appData.liked.indexOf(id), 1);
         variantutil.updateOne(id, "likes", Math.max(variantLikes - 1, 0));
       } else {
         //Liked
-        req.session.user.liked.push(id);
-        userutil.updateOne(req.session.user.username, "liked", req.session.user.liked);
+        req.session.user.appData.liked.push(id);
         variantutil.updateOne(id, "likes", variantLikes + 1);
       }
+      axios.post(`${deepcore_server}/api/oauth/user/update`, {
+        key: "liked",
+        data: req.session.user.appData.liked
+      }, {
+        headers: {
+          'Authorization': JSON.stringify({
+            application_id,
+            accessToken: req.session.accessToken
+          })
+        }
+      }).then((e) => {
+        res.status(200);
+        res.send({
+          message: `Updated data`
+        });
+      })
     } else if (action == "save") {
-      if (req.session.user.saved.includes(id)) {
+
+      req.session.user.appData.saved = req.session.user.appData.saved || [];
+
+      if (req.session.user.appData.saved.includes(id)) {
         //Unsaved
-        req.session.user.saved.splice(req.session.user.saved.indexOf(id), 1);
-        userutil.updateOne(req.session.user.username, "saved", req.session.user.saved);
+        req.session.user.appData.saved.splice(req.session.user.saved.indexOf(id), 1);
       } else {
         //Saved
-        req.session.user.saved.push(id);
-        userutil.updateOne(req.session.user.username, "saved", req.session.user.saved);
+        req.session.user.appData.saved.push(id);
       }
+      axios.post(`${deepcore_server}/api/oauth/user/update`, {
+        key: "saved",
+        data: req.session.user.appData.saved
+      }, {
+        headers: {
+          'Authorization': JSON.stringify({
+            application_id,
+            accessToken: req.session.accessToken
+          })
+        }
+      }).then((e) => {
+        res.status(200);
+        res.send({
+          message: `Updated data`
+        });
+      })
     } else {
       res.status(422);
       res.send({ message: "Unable to gleen action to take" });
       return;
     }
-    res.status(200);
-    res.send({});
   } else {
     res.status(442);
     res.send({ message: "Invalid id or action" });

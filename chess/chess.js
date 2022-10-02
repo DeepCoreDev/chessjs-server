@@ -1,8 +1,9 @@
 var socket = require('./socket');
 var io = socket.start();
 const crypto = require('crypto');
-const {NodeVM} = require('vm2');
+const { NodeVM } = require('vm2');
 const fs = require('fs');
+const mongodb = require('../util/mongodb');
 var session;
 
 var play_ids = {
@@ -13,7 +14,7 @@ var socketsByUserID = {
 
 }
 
-io.use((socket, next) => {
+io.use(async (socket, next) => {
     try {
         // Check valid play_id
         const play_id = socket.handshake.auth.play_id;
@@ -29,25 +30,44 @@ io.use((socket, next) => {
         }
         let cookieString = socket.handshake.headers.cookie;
 
-        let req = { connection: { encrypted: false }, headers: { cookie: cookieString } }
-        let res = { getHeader: () => { }, setHeader: () => { } };
+        const parseCookie = str =>
+            str
+                .split(';')
+                .map(v => v.split('='))
+                .reduce((acc, v) => {
+                    acc[decodeURIComponent(v[0].trim())] = decodeURIComponent(v[1].trim());
+                    return acc;
+                }, {});
 
-        session(req, res, () => {
-            if (req.session.user) {
-                socket.session = req.session;
-                socket.play_id = play_id;
-                socketsByUserID[req.session.user.username] = socket;
-                next();
-            } else {
-                next();
-                socket.send({
-                    code: 403,
-                    message: "Not logged in"
-                });
-                socket.disconnect();
-                return;
-            }
-        })
+        let cookies = parseCookie(cookieString);
+
+        let cookieId = cookies["connect.sid"].substring("s:".length).split(".")[0];
+
+        await mongodb.client.connect();
+        const db = mongodb.client.db("chessjs");
+        const collection = db.collection("sessions");
+        collection.findOne({ _id: cookieId })
+            .then((e) => {
+                if (!e) {
+                    return;
+                }
+                let session = JSON.parse(e.session);
+                if (session.user) {
+                    socket.session = session;
+                    socket.play_id = play_id;
+                    socketsByUserID[session.user.username] = socket;
+                    next();
+                } else {
+                    next();
+                    socket.send({
+                        code: 403,
+                        message: "Not logged in"
+                    });
+                    socket.disconnect();
+                    return;
+                }
+            })
+
     } catch (e) {
         console.log(e);
     }
@@ -55,7 +75,7 @@ io.use((socket, next) => {
 })
 
 io.on('connection', (socket) => {
-    if(socket.play_id){
+    if (socket.play_id) {
         // We've successfully authorised & we have a play_id
         joinGame(socket, socket.play_id);
     }
@@ -88,31 +108,30 @@ function startGame(variantID) {
     return play_id;
 }
 
-function joinGame(socket, play_id){
-    if(!play_ids[play_id].players.includes(socket.session.user.username)){
-        if(play_ids[socket.play_id].players.length < play_ids[socket.play_id].module.players){
+function joinGame(socket, play_id) {
+    if (!play_ids[play_id].players.includes(socket.session.user.username)) {
+        if (play_ids[socket.play_id].players.length < play_ids[socket.play_id].module.players) {
             // There's space in the game
             play_ids[play_id].players.push(socket.session.user.username);
-        }else{
+        } else {
             return;
         }
     }
-    
+
     sendUpdate(socket, play_id);
     socket.on("requestUpdate", (m) => {
-        console.log("SOMEBODY WANNA A UPDATE?")
         sendUpdate(socket, play_id);
     });
 
     socket.on("move", (m) => {
-        var player_id = play_ids[play_id].players.indexOf(socket.session.user.username)+1;
+        var player_id = play_ids[play_id].players.indexOf(socket.session.user.username) + 1;
         console.log(m.move);
-        if(play_ids[play_id].module.getTurn() == player_id){
+        if (play_ids[play_id].module.getTurn() == player_id) {
             play_ids[play_id].module.makeMove(m.move, player_id);
-            for(let i = 0; i < play_ids[play_id].players.length; i++){
+            for (let i = 0; i < play_ids[play_id].players.length; i++) {
                 sendUpdate(socketsByUserID[play_ids[play_id].players[i]], play_id);
             }
-        }        
+        }
     });
 
     setInterval(() => {
@@ -124,8 +143,8 @@ function useSession(sess) {
     session = sess;
 }
 
-function sendUpdate(socket, play_id){
-    var player_id = play_ids[play_id].players.indexOf(socket.session.user.username)+1;
+function sendUpdate(socket, play_id) {
+    var player_id = play_ids[play_id].players.indexOf(socket.session.user.username) + 1;
     socket.emit("update", {
         validMoves: play_ids[play_id].getValidMoves(player_id),
         turn: play_ids[play_id].module.getTurn(),
