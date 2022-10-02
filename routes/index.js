@@ -8,7 +8,7 @@ const axios = require('axios');
 
 const application_id = "6337d618838ae6fae5ea2854";
 const application_secret = "yHySm5BD75wQ1kbrBvq3Kd0FjwMFpvMq";
-const deepcore_server = "//deepcore.dev";
+const deepcore_server = "https://deepcore.dev";
 
 let states = {};
 
