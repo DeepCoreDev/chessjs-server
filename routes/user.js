@@ -4,7 +4,7 @@ const urlutil = require('../util/urlutil');
 const { default: axios } = require("axios");
 
 const salt = "$2b$10$0ynp.zKILeTkGzS9vVMd1O";
-const deepcore_server = "https://deepcore.dev";
+const deepcore_server = process.env.ENV === "dev" ? "http://localhost:5174" : "https://deepcore.dev";
 
 
 function hashPassword(password) {

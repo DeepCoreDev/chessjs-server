@@ -8,7 +8,7 @@ const axios = require('axios');
 
 const application_id = "6337d618838ae6fae5ea2854";
 const application_secret = "yHySm5BD75wQ1kbrBvq3Kd0FjwMFpvMq";
-const deepcore_server = "https://deepcore.dev";
+const deepcore_server = process.env.ENV === "dev" ? "http://localhost:5174" : "https://deepcore.dev";
 
 let states = {};
 
@@ -63,7 +63,7 @@ router.post("/oauth/authorize", async function (req, res, next) {
   states[state] = code;
   res.status(200);
   res.send({
-    redirect: `${deepcore_server}/oauth/authorize?application_id=6337d618838ae6fae5ea2854&state=${encodeURIComponent(state)}`
+    redirect: `${deepcore_server}/oauth/authorize?application_id=6337d618838ae6fae5ea2854&state=${encodeURIComponent(state)}${process.env.ENV === "dev" ? '&redirect=' + encodeURIComponent("http://localhost:5173/callback") : ''}`
   });
 });
 

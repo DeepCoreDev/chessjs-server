@@ -11,7 +11,7 @@ const { ObjectId } = require("mongodb");
 const axios = require('axios');
 
 const application_id = "6337d618838ae6fae5ea2854";
-const deepcore_server = "https://deepcore.dev";
+const deepcore_server = process.env.ENV === "dev" ? "http://localhost:5174" : "https://deepcore.dev";
 
 router.get("/fetch", async function (req, res, next) {
   await mongodb.client.connect();
